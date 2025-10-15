@@ -1,0 +1,59 @@
+# --------------------------
+# IDE / Editor files
+# --------------------------
+.idea/
+.vscode/
+
+# --------------------------
+# Python bytecode & caches
+# --------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --------------------------
+# Virtual environments
+# --------------------------
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# --------------------------
+# Panda3D / cache artifacts
+# --------------------------
+*.bam
+*.txo
+*.egg.pz
+.panda3d-cache/
+
+# --------------------------
+# OS files
+# --------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --------------------------
+# Logs / temp / outputs
+# --------------------------
+*.log
+*.tmp
+*.bak
+
+# --------------------------
+# Python packaging
+# --------------------------
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --------------------------
+# Local data / scratch
+# --------------------------
+*.swp
+*.swo
+*.orig

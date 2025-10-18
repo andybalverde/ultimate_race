@@ -22,6 +22,7 @@ class App(ShowBase):
 
         # Physics world placeholder (for later 5-ray + colliders)
         self.bworld = BulletWorld()
+        self.bworld.setGravity((0, 0, -9.81))
 
         # Input + player
         self.input = InputMap(self)

@@ -27,3 +27,19 @@ TURN_RATE = 90.0
 TURN_MIN  = 25.0
 # Multiplies forward displacement each frame (100.0 = 100× current speed)
 SPEED_MULT = 100.0
+
+# --- robust ground fit (tiny + safe) ---
+# --- robust ground fit (tiny + safe) ---
+GROUND_Z_MIN         = 0.25
+GROUND_MAX_DEG_STEP  = 30.0
+GROUND_SMOOTH_ALPHA  = 0.35
+GROUND_RAY_HEIGHT    = 4.0
+GROUND_RAY_LENGTH    = 30.0
+SAMPLE_FWD_FRACTION  = 0.70
+SAMPLE_REAR_FRACTION = 0.60
+SAMPLE_W_FRAC        = 0.60
+
+# --- new guards against early flips ---
+MAX_SLOPE_DEG        = 55.0   # treat steeper surfaces like walls/curbs; pull toward world-up
+DELTA_DEG_TRIGGER    = 10.0   # big change must persist before we accept it
+ACCEPT_FRAMES        = 5      # consecutive frames required to accept a big change

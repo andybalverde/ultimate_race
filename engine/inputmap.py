@@ -1,7 +1,10 @@
+# engine/inputmap.py
 class InputMap:
     """
     Simple held-key state map.
-    Arrows = drive, Z/X = zoom out/in, Q/A = camera height up/down.
+    Arrows  = drive
+    Z / X   = camera zoom out / in
+    U / J   = camera height up / down   (also keeps Q/A for convenience)
     """
     def __init__(self, base):
         self.held = {
@@ -11,6 +14,7 @@ class InputMap:
         }
 
         b = base
+        # Driving
         b.accept("arrow_up",       self._set, ["up", True])
         b.accept("arrow_up-up",    self._set, ["up", False])
         b.accept("arrow_down",     self._set, ["down", True])
@@ -20,12 +24,19 @@ class InputMap:
         b.accept("arrow_right",    self._set, ["right", True])
         b.accept("arrow_right-up", self._set, ["right", False])
 
-        # Zoom + camera height
+        # Zoom
         b.accept("z",     self._set, ["zoom_out", True])
         b.accept("z-up",  self._set, ["zoom_out", False])
         b.accept("x",     self._set, ["zoom_in", True])
         b.accept("x-up",  self._set, ["zoom_in", False])
 
+        # Camera height (new U/J)
+        b.accept("u",     self._set, ["cam_up", True])
+        b.accept("u-up",  self._set, ["cam_up", False])
+        b.accept("j",     self._set, ["cam_down", True])
+        b.accept("j-up",  self._set, ["cam_down", False])
+
+        # Keep Q/A as aliases (optional)
         b.accept("q",     self._set, ["cam_up", True])
         b.accept("q-up",  self._set, ["cam_up", False])
         b.accept("a",     self._set, ["cam_down", True])

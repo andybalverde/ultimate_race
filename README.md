@@ -9,8 +9,12 @@ Porsche 911/992 GT3 RS https://sketchfab.com/3d-models/porsche-911992-gt3-rs-af3
 2018 BMW M4 GT4 https://sketchfab.com/3d-models/2018-bmw-m4-gt4-30d6f0748d5d4407a71af895b3770028
 2017 BMW M4 DTM https://sketchfab.com/3d-models/2017-bmw-m4-dtm-1f6b2085bf664581b469e2947882ff74
 2021 BMW M4 GT3 https://sketchfab.com/3d-models/2021-bmw-m4-gt3-4ac4a18be9c24500b4f4f813cea1145f
+ToyotaGR Supra GT300 | www.vecarz.com https://sketchfab.com/3d-models/toyotagr-supra-gt300-wwwvecarzcom-1666c35171b649a8a927da53bdadf228
+Ford Capri Group B  https://sketchfab.com/3d-models/ford-capri-group-b-wwwvecarzcom-e0d4099f172144a690b21719ff90065d
 
 
 Circuits:
 Cartoon Race Track Spielberg https://sketchfab.com/3d-models/cartoon-race-track-spielberg-23dbb21af64e407286fd16e29c9aea25
 Race Track : Forest Loop Raceway https://sketchfab.com/3d-models/race-track-forest-loop-raceway-738444b7fc8a47958fa627dae8cf84b5
+Emdurance Run: https://sketchfab.com/3d-models/endurance-run-road-trip-adventure-5e1a4b70baa241959b72ae12fec1253d
+Karting Club Lider | Outdoor Race Track [Ready] https://sketchfab.com/3d-models/karting-club-lider-outdoor-race-track-ready-2d9ba05c6eed439d858ee325286122c0

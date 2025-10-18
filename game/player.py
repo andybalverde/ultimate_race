@@ -50,7 +50,7 @@ class Player:
         self.car.reparentTo(base.render)
         self.car.setScale(CAR_SCALE)
         self.car.setPos(CAR_SPAWN_POS)
-        self.car.setHpr(CAR_SPAWN_YAW, 0, 0)
+        self.car.setHpr(CAR_SPAWN_YAW + 90.0, 0, 0)
 
         # Dynamics state
         self.speed = 0.0
@@ -119,7 +119,7 @@ class Player:
         if right.length_squared() < 1e-6:
             return  # degenerate frame on near-vertical walls
         right.normalize()
-        fwd = up.cross(right)
+        fwd = right.cross(up)  # <— flip to fix pitch (nose now tilts uphill)
         fwd.normalize()
 
         mat = Mat3(

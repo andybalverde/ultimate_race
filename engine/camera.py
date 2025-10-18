@@ -1,7 +1,7 @@
 # engine/camera.py
-from math import sin, cos, radians, exp
+from math import exp
 from direct.gui.OnscreenText import OnscreenText
-from panda3d.core import Vec3, Point3
+from panda3d.core import Vec3
 
 from constants import (
     CAM_DISTANCE_DEFAULT, CAM_DISTANCE_MIN, CAM_DISTANCE_MAX, CAM_ZOOM_SPEED,
@@ -12,23 +12,19 @@ from constants import (
 class ChaseCamera:
     """
     Rally-style drone chase camera:
-      - sits behind & above the car
-      - smooth spring/lag following for position
-      - look-ahead target so it peeks down the road
-      - Z/X: zoom out/in (distance)
-      - U/J (and Q/A): camera height up/down
-      - HUD shows current distance & height
+      - sticks behind & above the car using its real world-forward
+      - smooth spring/lag for position
+      - look-ahead down the road
+      - Z/X: zoom  |  U/J (also Q/A): height
+      - HUD shows current distance/height/lag
     """
     def __init__(self, base, target_np):
         self.base   = base
         self.target = target_np
 
-        # Editable live params
+        # Live-adjustable params (seeded from constants)
         self.distance = float(CAM_DISTANCE_DEFAULT)
         self.height   = float(CAM_HEIGHT_DEFAULT)
-
-        # Keep a tiny bit of state for HUD update
-        self._last_hud_text = None
 
         # Initial placement
         pos, look = self._desired()
@@ -36,13 +32,14 @@ class ChaseCamera:
         self.base.camera.lookAt(look)
 
         # HUD
+        self._last_hud = None
         self.hud = OnscreenText(
             text="", pos=(-1.28, 0.93), scale=0.04,
             fg=(1, 1, 1, 1), align=0, mayChange=True, shadow=(0, 0, 0, 0.7)
         )
         self._update_hud(force=True)
 
-    # -------- input handling (called from App each frame) --------
+    # -------- input handling (called per-frame from App) --------
     def apply_inputs(self, inputmap, dt: float):
         # Zoom
         if inputmap.held.get("zoom_in"):
@@ -51,7 +48,7 @@ class ChaseCamera:
             self.distance -= CAM_ZOOM_SPEED * dt
         self.distance = max(CAM_DISTANCE_MIN, min(CAM_DISTANCE_MAX, self.distance))
 
-        # Height (U/J and Q/A map to the same flags)
+        # Height (U/J and Q/A map to same flags)
         if inputmap.held.get("cam_up"):
             self.height += CAM_HEIGHT_SPEED * dt
         if inputmap.held.get("cam_down"):
@@ -59,49 +56,45 @@ class ChaseCamera:
         self.height = max(CAM_HEIGHT_MIN, min(CAM_HEIGHT_MAX, self.height))
 
     # -------- camera solve --------
+    def _target_forward_world(self):
+        # Car's local +Y is "forward" (you move with (0, +Y, 0)).
+        # Transform it to world space to avoid trig/sign errors.
+        q = self.target.getQuat(self.base.render)
+        fwd = q.xform(Vec3(0, 1, 0))
+        fwd.normalize()
+        return fwd
+
     def _desired(self):
         """
-        Compute the ideal camera pos/target:
-          - behind the car by `distance` along its heading
-          - above ground by `height`
-          - looks slightly ahead of the car so turns feel anticipatory
+        Ideal camera: behind along true world-forward, up by height,
+        looking a bit ahead and slightly up.
         """
-        h_deg = self.target.getH()
-        h = radians(h_deg)
-
-        # behind vector in world space
-        back = Vec3(-sin(h), -cos(h), 0) * self.distance
-
-        # world-space target position
         tpos = self.target.getPos(self.base.render)
+        fwd  = self._target_forward_world()
 
-        # camera pos: behind + height
+        back = -fwd * self.distance
         cam_pos = tpos + back + Vec3(0, 0, self.height)
 
-        # look-ahead (peek down the road a bit, and slightly above horizon)
         look_ahead = 8.0
         look_up    = 1.5
-        ahead = Vec3(sin(h), cos(h), 0) * look_ahead
-        look = tpos + ahead + Vec3(0, 0, look_up)
-
+        look = tpos + fwd * look_ahead + Vec3(0, 0, look_up)
         return cam_pos, look
 
     def _update_hud(self, force=False):
         txt = f"cam distance: {self.distance:.2f}   cam height: {self.height:.2f}   lag: {CAM_LAG:.1f}"
-        if force or txt != self._last_hud_text:
+        if force or txt != self._last_hud:
             self.hud.setText(txt)
-            self._last_hud_text = txt
+            self._last_hud = txt
 
     def update(self, dt: float):
         desired_pos, look = self._desired()
 
-        # Critically-damped like follow: alpha = 1 - e^(-k*dt), k ~ CAM_LAG
-        # Higher CAM_LAG => snappier; lower => floaty.
+        # Smooth follow (critically-damped-ish)
         alpha = 1.0 - exp(-CAM_LAG * dt)
         cur = self.base.camera.getPos(self.base.render)
         self.base.camera.setPos(cur + (desired_pos - cur) * alpha)
 
-        # Always look at the look-ahead target
+        # Always aim at look-ahead
         self.base.camera.lookAt(look)
 
         self._update_hud()

@@ -1,4 +1,3 @@
-# engine/camera.py
 from math import exp
 from direct.gui.OnscreenText import OnscreenText
 from panda3d.core import Vec3
@@ -15,23 +14,19 @@ class ChaseCamera:
       - sticks behind & above the car using its real world-forward
       - smooth spring/lag for position
       - look-ahead down the road
-      - Z/X: zoom  |  U/J (also Q/A): height
-      - HUD shows current distance/height/lag
+      - Z/X: zoom  |  U/J: height
     """
     def __init__(self, base, target_np):
         self.base   = base
         self.target = target_np
 
-        # Live-adjustable params (seeded from constants)
         self.distance = float(CAM_DISTANCE_DEFAULT)
         self.height   = float(CAM_HEIGHT_DEFAULT)
 
-        # Initial placement
         pos, look = self._desired()
         self.base.camera.setPos(pos)
         self.base.camera.lookAt(look)
 
-        # HUD
         self._last_hud = None
         self.hud = OnscreenText(
             text="", pos=(-1.28, 0.93), scale=0.04,
@@ -39,7 +34,6 @@ class ChaseCamera:
         )
         self._update_hud(force=True)
 
-    # -------- input handling (called per-frame from App) --------
     def apply_inputs(self, inputmap, dt: float):
         # Zoom
         if inputmap.held.get("zoom_in"):
@@ -48,27 +42,20 @@ class ChaseCamera:
             self.distance -= CAM_ZOOM_SPEED * dt
         self.distance = max(CAM_DISTANCE_MIN, min(CAM_DISTANCE_MAX, self.distance))
 
-        # Height (U/J and Q/A map to same flags)
+        # Height (U/J)
         if inputmap.held.get("cam_up"):
             self.height += CAM_HEIGHT_SPEED * dt
         if inputmap.held.get("cam_down"):
             self.height -= CAM_HEIGHT_SPEED * dt
         self.height = max(CAM_HEIGHT_MIN, min(CAM_HEIGHT_MAX, self.height))
 
-    # -------- camera solve --------
     def _target_forward_world(self):
-        # Car's local +Y is "forward" (you move with (0, +Y, 0)).
-        # Transform it to world space to avoid trig/sign errors.
         q = self.target.getQuat(self.base.render)
         fwd = q.xform(Vec3(0, 1, 0))
         fwd.normalize()
         return fwd
 
     def _desired(self):
-        """
-        Ideal camera: behind along true world-forward, up by height,
-        looking a bit ahead and slightly up.
-        """
         tpos = self.target.getPos(self.base.render)
         fwd  = self._target_forward_world()
 
@@ -88,13 +75,8 @@ class ChaseCamera:
 
     def update(self, dt: float):
         desired_pos, look = self._desired()
-
-        # Smooth follow (critically-damped-ish)
         alpha = 1.0 - exp(-CAM_LAG * dt)
         cur = self.base.camera.getPos(self.base.render)
         self.base.camera.setPos(cur + (desired_pos - cur) * alpha)
-
-        # Always aim at look-ahead
         self.base.camera.lookAt(look)
-
         self._update_hud()

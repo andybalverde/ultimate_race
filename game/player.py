@@ -1,27 +1,36 @@
-# game/player.py
 import math
+from direct.gui.OnscreenText import OnscreenText
 from panda3d.core import Vec3, TransformState, BitMask32
 from direct.task import Task
 from panda3d.bullet import BulletTriangleMesh, BulletTriangleMeshShape, BulletRigidBodyNode
 
 from constants import (
     MAX_SPEED, ACCEL, BRAKE, FRICTION, TURN_RATE, TURN_MIN,
-    CAR_SCALE, CAR_SPAWN_POS, CAR_SPAWN_YAW,
-    TRACK_SCALE, SPEED_MULT,
+    SPEED_MULT, DEV_FLY_SPEED, SCALE_STEP,
 )
-from engine.assets import p3, TRACK, TESLA
+from engine.assets import p3, TESLA
 from engine.utils.ground import GroundSolver, build_tilted_chassis
 
 
 class Player:
-    def __init__(self, base, inputmap):
+    """
+    One race scene:
+      - loads the chosen track model and Tesla
+      - arcade drive + ground follow
+      - DEV controls: Q/A fly, P/M live scale
+      - HUD shows pos/orientation + track name & scale
+    """
+    def __init__(self, base, inputmap, track_def, defaults):
         self.base = base
         self.inp = inputmap
+        self.track_def = track_def
+        self.defaults = defaults  # dict with scale/spawn_pos/spawn_yaw
 
         # --- Track (visual) ---
-        self.track = base.loader.loadModel(p3(TRACK))
+        self.track = base.loader.loadModel(p3(track_def["model"]))
         self.track.reparentTo(base.render)
-        self.track.setScale(TRACK_SCALE)
+        self.scale = float(defaults["scale"])
+        self.track.setScale(self.scale)
 
         # --- Static collider from visual track ---
         mesh = BulletTriangleMesh()
@@ -42,9 +51,9 @@ class Player:
         # --- Car (visual only) ---
         self.car = base.loader.loadModel(p3(TESLA))
         self.car.reparentTo(base.render)
-        self.car.setScale(CAR_SCALE)
-        self.car.setPos(CAR_SPAWN_POS)
-        self.car.setHpr(CAR_SPAWN_YAW + 90.0, 0.0, 0.0)
+        self.car.setScale(0.45)  # Tesla scale stays the same as before
+        self.car.setPos(defaults["spawn_pos"])
+        self.car.setHpr(defaults["spawn_yaw"] + 90.0, 0.0, 0.0)
 
         # Ride clearance
         self.ride_clearance = 0.25
@@ -60,6 +69,13 @@ class Player:
 
         # Ground solver
         self.ground = GroundSolver(base)
+
+        # DEV HUD
+        self.hud = OnscreenText(
+            text="", pos=(-1.28, 0.86), scale=0.038,
+            fg=(0.9, 1.0, 0.9, 1), align=0, mayChange=True, shadow=(0, 0, 0, 0.7)
+        )
+        self._refresh_hud(force=True)
 
         base.taskMgr.add(self._update, "player_update")
 
@@ -78,14 +94,31 @@ class Player:
         steer_scale = TURN_MIN + (TURN_RATE - TURN_MIN) * min(1.0, abs(self.speed) / (0.6 * MAX_SPEED))
         self.car.setH(self.car.getH() + steer * steer_scale * dt * (1 if self.speed >= 0 else -1))
 
+        # Forward movement along car's local +Y
         self.car.setPos(self.car, Vec3(0, self.speed * SPEED_MULT * dt, 0))
+
+        # DEV: vertical fly (Q/A)
+        if self.inp.held.get("fly_up"):
+            self.car.setZ(self.car.getZ() + DEV_FLY_SPEED * dt)
+        if self.inp.held.get("fly_down"):
+            self.car.setZ(self.car.getZ() - DEV_FLY_SPEED * dt)
+
+        # DEV: live scale (P/M)
+        changed = False
+        if self.inp.held.get("scale_up"):
+            self.scale += SCALE_STEP * dt
+            changed = True
+        if self.inp.held.get("scale_down"):
+            self.scale = max(0.05, self.scale - SCALE_STEP * dt)
+            changed = True
+        if changed:
+            self.track.setScale(self.scale)
 
     # ---------- Ground follow / banking ----------
     def _apply_ground_follow(self):
         yaw = self.car.getH()
         up, z_suggest = self.ground.estimate(self.car, self.half_w, self.half_l)
 
-        # Roll/pitch from ground; yaw stays exactly as steering decided
         q = build_tilted_chassis(yaw, up)
         self.car.setQuat(q)
         self.car.setH(yaw)
@@ -93,9 +126,24 @@ class Player:
         if z_suggest is not None:
             self.car.setZ(z_suggest + self.ride_clearance)
 
+    # ---------- HUD ----------
+    def _refresh_hud(self, force=False):
+        pos = self.car.getPos(self.base.render)
+        h, p, r = self.car.getHpr()
+        txt = (
+            f"[{self.track_def['name']}] scale:{self.scale:.2f}  "
+            f"X:{pos.x:7.2f}  Y:{pos.y:7.2f}  Z:{pos.z:6.2f}  "
+            f"H:{h:6.2f}  P:{p:5.2f}  R:{r:5.2f}  "
+            f"  (Q/A fly  P/M scale)"
+        )
+        if force or txt != getattr(self, "_last_txt", None):
+            self.hud.setText(txt)
+            self._last_txt = txt
+
     # ---------- Per-frame ----------
     def _update(self, task: Task):
         dt = min(self.base.clock.getDt(), 1 / 30.0)
         self._apply_drive(dt)
         self._apply_ground_follow()
+        self._refresh_hud()
         return Task.cont
